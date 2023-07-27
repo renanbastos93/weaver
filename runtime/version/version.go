@@ -17,75 +17,100 @@
 package version
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
+	"io/ioutil"
+	"net/http"
+	"time"
 
 	_ "embed"
-
-	"golang.org/x/mod/semver"
 )
 
 // SemVer is a semantic version. See https://go.dev/doc/modules/version-numbers
 // for details.
 type SemVer struct {
-	Major int
-	Minor int
-	Patch int
+	Major int64 `json:"major,omitempty"`
+	Minor int64 `json:"minor,omitempty"`
+	Patch int64 `json:"patch,omitempty"`
+}
+
+type Versions struct {
+	Module   SemVer `json:"module,omitempty"`
+	Deployer SemVer `json:"deployer,omitempty"`
+	Codegen  SemVer `json:"codegen,omitempty"`
 }
 
 var (
-	//go:embed files/module.version
-	moduleVersion string
-
-	//go:embed files/deployer.version
-	deployerVersion string
-
-	//go:embed files/codegen.version
-	codegenVersion string
+	//go:embed files/versions.json
+	VersionsJson []byte
 )
 
 var (
-	// The weaver module version.
-	ModuleVersion = NewSemVer(moduleVersion)
+	v Versions
 
-	// The deployer API version.
-	DeployerVersion = NewSemVer(deployerVersion)
+	ModuleVersion = v.Module
+	ModuleMajor   = v.Module.Major
+	ModuleMinor   = v.Module.Minor
+	ModulePatch   = v.Module.Patch
 
-	// The codegen API version.
-	CodegenVersion = NewSemVer(codegenVersion)
+	DeployerVersion = v.Deployer
+	DeployerMajor   = v.Deployer.Major
+	DeployerMinor   = v.Deployer.Minor
+
+	CodegenVersion = v.Codegen
+	CodegenMajor   = v.Codegen.Minor
+	CodegenMinor   = v.Codegen.Minor
+
+	baseURL = "https://raw.githubusercontent.com/renanbastos93/weaver/chore/validate-versions/runtime/version/files/"
 )
 
-func NewSemVer(v string) (version SemVer) {
-	before, after, _ := strings.Cut(v, ".")
-	major, _ := strconv.Atoi(before)
-	after, last, _ := strings.Cut(after, ".")
-	minor, _ := strconv.Atoi(after)
-	patch, _ := strconv.Atoi(last)
-	return SemVer{
-		Major: major,
-		Minor: minor,
-		Patch: patch,
-	}
+func init() {
+	_ = json.Unmarshal(VersionsJson, &v)
+	ModuleVersion = v.Module
+	ModuleMajor = v.Module.Major
+	ModuleMinor = v.Module.Minor
+	ModulePatch = v.Module.Patch
+	DeployerVersion = v.Deployer
+	DeployerMajor = v.Deployer.Major
+	DeployerMinor = v.Deployer.Minor
+	CodegenVersion = v.Codegen
+	CodegenMajor = v.Codegen.Minor
+	CodegenMinor = v.Codegen.Minor
 }
 
-func (s SemVer) GetLastVersionModule() (v string) {
-	return
-}
-
-func (s SemVer) GetLastVersionDeployer() (v string) {
-	return
-}
-
-func (s SemVer) GetLastVersionCodegen() (v string) {
-	return
-}
-
-func (s SemVer) WeNeedUpdatedVersion(lastVersion string) bool {
-	currentVersion := s.String()
-	return semver.Max(currentVersion, lastVersion) != currentVersion
+func (s SemVer) GetLastVersion() (v string) {
+	return s.getVersionFileOnGit("versions.json")
 }
 
 func (s SemVer) String() string {
 	return fmt.Sprintf("v%d.%d.%d", s.Major, s.Minor, s.Patch)
+}
+
+func (s SemVer) getVersionFileOnGit(filename string) (v string) {
+	var (
+		client   *http.Client
+		response *http.Response
+		body     []byte
+		err      error
+	)
+
+	client = &http.Client{
+		Timeout: time.Second,
+	}
+
+	response, err = client.Get(baseURL + filename)
+	if err != nil {
+		return
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return
+	}
+
+	defer response.Body.Close()
+	body, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+	return string(body)
 }

@@ -95,18 +95,18 @@ func main() {
 	case "callgraph":
 		const usage = `Generate component callgraphs.
 
-Usage:
-  weaver callgraph <binary>
+	Usage:
+	  weaver callgraph <binary>
 
-Flags:
-  -h, --help           Print this help message.
+	Flags:
+	  -h, --help           Print this help message.
 
-Description:
-  "weaver callgraph <file>" outputs a component callgraph in mermaid format
-  [1]. These graphs can be included in GitHub README files [2].
+	Description:
+	  "weaver callgraph <file>" outputs a component callgraph in mermaid format
+	  [1]. These graphs can be included in GitHub README files [2].
 
-[1]: https://mermaid.js.org/
-[2]: https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/`
+	[1]: https://mermaid.js.org/
+	[2]: https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/`
 		flags := flag.NewFlagSet("callgraph", flag.ExitOnError)
 		flags.Usage = func() { fmt.Fprintln(os.Stderr, usage) }
 		flags.Parse(flag.Args()[1:]) //nolint:errcheck
@@ -183,6 +183,7 @@ func run(deployer string, args []string) (int, error) {
 }
 
 // wrap trims whitespace in the provided string and wraps it to n characters.
+
 func wrap(s string, n int) string {
 	var b strings.Builder
 	k := 0
@@ -198,5 +199,6 @@ func wrap(s string, n int) string {
 			fmt.Fprintf(&b, " %s", word)
 		}
 	}
+
 	return b.String()
 }

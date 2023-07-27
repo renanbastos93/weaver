@@ -14,8 +14,6 @@
 
 package codegen
 
-import "github.com/ServiceWeaver/weaver/runtime/version"
-
 // The following types are used to check, at compile time, that every
 // weaver_gen.go file uses the codegen API version that is linked into the
 // binary.
@@ -35,4 +33,4 @@ import "github.com/ServiceWeaver/weaver/runtime/version"
 // (this is "..." above). Again note that we ignore the patch number.
 
 type Version[_ any] string
-type LatestVersion = Version[[version.CodegenMajor][version.CodegenMinor]struct{}]
+type LatestVersion = Version[[1][1]struct{}]

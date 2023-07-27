@@ -379,7 +379,7 @@ func checkVersion(v *protos.SemVer) error {
 	if v == nil {
 		return fmt.Errorf("version mismatch: nil app version")
 	}
-	got := version.SemVer{Major: int(v.Major), Minor: int(v.Minor), Patch: int(v.Patch)}
+	got := version.SemVer{Major: v.Major, Minor: v.Minor, Patch: v.Patch}
 	if got != version.DeployerVersion {
 		return fmt.Errorf("version mismatch: deployer's deployer API version %s is incompatible with app' deployer API version %s.", version.DeployerVersion, got)
 	}

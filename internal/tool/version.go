@@ -32,7 +32,7 @@ func VersionCmd(toolname string) *tool.Command {
 		Description: fmt.Sprintf("Show %q version", toolname),
 		Help:        fmt.Sprintf("Usage:\n  %s version", toolname),
 		Fn: func(context.Context, []string) error {
-			fmt.Printf("%s %s %s/%s\n", toolname, version.ModuleVersion, runtime.GOOS, runtime.GOARCH)
+			fmt.Printf("%s %s %s/%s\n", toolname, version.ModuleVersion.String(), runtime.GOOS, runtime.GOARCH)
 			return nil
 		},
 	}

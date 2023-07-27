@@ -140,7 +140,7 @@ func extractVersions(data []byte) (Versions, error) {
 	for _, segment := range []struct {
 		name string
 		data []byte
-		dst  *int
+		dst  *int64
 	}{
 		{"module major version", m[1], &v.ModuleVersion.Major},
 		{"module minor version", m[2], &v.ModuleVersion.Minor},
@@ -150,7 +150,7 @@ func extractVersions(data []byte) (Versions, error) {
 		{"deployer patch version", m[6], &v.DeployerVersion.Patch},
 	} {
 		s := string(segment.data)
-		x, err := strconv.Atoi(s)
+		x, err := strconv.ParseInt(s, 0, 64)
 		if err != nil {
 			return Versions{}, fmt.Errorf("invalid embedded %s %q: %w", segment.name, s, err)
 		}
