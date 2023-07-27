@@ -18,56 +18,12 @@ package version
 
 import (
 	"fmt"
-)
+	"strconv"
+	"strings"
 
-// TODO(mwhittaker): Write a doc explaining versioning in detail. Include
-// Srdjan's comments in PR #219.
+	_ "embed"
 
-const (
-	// The weaver module semantic version [1].
-	//
-	// [1]: https://go.dev/doc/modules/version-numbers
-	ModuleMajor = 0
-	ModuleMinor = 18
-	ModulePatch = 0
-
-	// Note that there is currently no way to programmatically get the version
-	// of the current module [1], so we have to manually update the module
-	// version here whenever we release a new version.
-	//
-	// [1]: https://github.com/golang/go/issues/29228
-
-	// The version of the deployer API.
-	//
-	// Every time we make a change to the deployer API, we assign it a new
-	// version. We could assign the deployer API versions v1, v2, v3, and so
-	// on. However, this makes it hard to understand the relationship between
-	// the deployer API version and the version of the Service Weaver module.
-	//
-	// Instead, we use Service Weaver module versions as deployer API versions.
-	// For example, if we change the deployer API in v0.12.0 of Service Weaver,
-	// then we update the deployer API version to v0.12.0. If we don't change
-	// the deployer API in v0.13.0 of Service Weaver, then we leave the
-	// deployer API at v0.12.0.
-	DeployerMajor = 0
-	DeployerMinor = 18
-
-	// The version of the codegen API. As with the deployer API, we assign a
-	// new version every time we change how code is generated, and we use
-	// weaver module versions.
-	CodegenMajor = 0
-	CodegenMinor = 17
-)
-
-var (
-	// The weaver module version.
-	ModuleVersion = SemVer{ModuleMajor, ModuleMinor, ModulePatch}
-
-	// The deployer API version.
-	DeployerVersion = SemVer{DeployerMajor, DeployerMinor, 0}
-
-	// The codegen API version.
-	CodegenVersion = SemVer{CodegenMajor, CodegenMinor, 0}
+	"golang.org/x/mod/semver"
 )
 
 // SemVer is a semantic version. See https://go.dev/doc/modules/version-numbers
@@ -76,6 +32,58 @@ type SemVer struct {
 	Major int
 	Minor int
 	Patch int
+}
+
+var (
+	//go:embed files/module.version
+	moduleVersion string
+
+	//go:embed files/deployer.version
+	deployerVersion string
+
+	//go:embed files/codegen.version
+	codegenVersion string
+)
+
+var (
+	// The weaver module version.
+	ModuleVersion = NewSemVer(moduleVersion)
+
+	// The deployer API version.
+	DeployerVersion = NewSemVer(deployerVersion)
+
+	// The codegen API version.
+	CodegenVersion = NewSemVer(codegenVersion)
+)
+
+func NewSemVer(v string) (version SemVer) {
+	before, after, _ := strings.Cut(v, ".")
+	major, _ := strconv.Atoi(before)
+	after, last, _ := strings.Cut(after, ".")
+	minor, _ := strconv.Atoi(after)
+	patch, _ := strconv.Atoi(last)
+	return SemVer{
+		Major: major,
+		Minor: minor,
+		Patch: patch,
+	}
+}
+
+func (s SemVer) GetLastVersionModule() (v string) {
+	return
+}
+
+func (s SemVer) GetLastVersionDeployer() (v string) {
+	return
+}
+
+func (s SemVer) GetLastVersionCodegen() (v string) {
+	return
+}
+
+func (s SemVer) WeNeedUpdatedVersion(lastVersion string) bool {
+	currentVersion := s.String()
+	return semver.Max(currentVersion, lastVersion) != currentVersion
 }
 
 func (s SemVer) String() string {
