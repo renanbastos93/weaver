@@ -24,14 +24,20 @@ import (
 	"time"
 
 	_ "embed"
+
+	"golang.org/x/mod/semver"
 )
+
+// TODO(mwhittaker): Write a doc explaining versioning in detail. Include
+// Srdjan's comments in PR #219.
 
 // SemVer is a semantic version. See https://go.dev/doc/modules/version-numbers
 // for details.
 type SemVer struct {
-	Major int64 `json:"major,omitempty"`
-	Minor int64 `json:"minor,omitempty"`
-	Patch int64 `json:"patch,omitempty"`
+	Major       int64 `json:"major,omitempty"`
+	Minor       int64 `json:"minor,omitempty"`
+	Patch       int64 `json:"patch,omitempty"`
+	lastVersion string
 }
 
 type Versions struct {
@@ -41,26 +47,55 @@ type Versions struct {
 }
 
 var (
-	//go:embed files/versions.json
-	VersionsJson []byte
-)
-
-var (
 	v Versions
 
+	//go:embed files/versions.json
+	VersionsJson []byte
+
+	// The weaver module version.
 	ModuleVersion = v.Module
-	ModuleMajor   = v.Module.Major
-	ModuleMinor   = v.Module.Minor
-	ModulePatch   = v.Module.Patch
 
+	// The weaver module semantic version [1].
+	//
+	// [1]: https://go.dev/doc/modules/version-numbers
+	ModuleMajor = v.Module.Major
+	ModuleMinor = v.Module.Minor
+	ModulePatch = v.Module.Patch
+
+	// The deployer API version.
 	DeployerVersion = v.Deployer
-	DeployerMajor   = v.Deployer.Major
-	DeployerMinor   = v.Deployer.Minor
 
+	// Note that there is currently no way to programmatically get the version
+	// of the current module [1], so we have to manually update the module
+	// version here whenever we release a new version.
+	//
+	// [1]: https://github.com/golang/go/issues/29228
+
+	// The version of the deployer API.
+	//
+	// Every time we make a change to the deployer API, we assign it a new
+	// version. We could assign the deployer API versions v1, v2, v3, and so
+	// on. However, this makes it hard to understand the relationship between
+	// the deployer API version and the version of the Service Weaver module.
+	//
+	// Instead, we use Service Weaver module versions as deployer API versions.
+	// For example, if we change the deployer API in v0.12.0 of Service Weaver,
+	// then we update the deployer API version to v0.12.0. If we don't change
+	// the deployer API in v0.13.0 of Service Weaver, then we leave the
+	// deployer API at v0.12.0.
+	DeployerMajor = v.Deployer.Major
+	DeployerMinor = v.Deployer.Minor
+
+	// The codegen API version.
 	CodegenVersion = v.Codegen
-	CodegenMajor   = v.Codegen.Minor
-	CodegenMinor   = v.Codegen.Minor
 
+	// The version of the codegen API. As with the deployer API, we assign a
+	// new version every time we change how code is generated, and we use
+	// weaver module versions.
+	CodegenMajor = v.Codegen.Minor
+	CodegenMinor = v.Codegen.Minor
+
+	// https://raw.githubusercontent.com/renanbastos93/weaver/main/runtime/version/files/
 	baseURL = "https://raw.githubusercontent.com/renanbastos93/weaver/chore/validate-versions/runtime/version/files/"
 )
 
@@ -78,15 +113,36 @@ func init() {
 	CodegenMinor = v.Codegen.Minor
 }
 
-func (s SemVer) GetLastVersion() (v string) {
-	return s.getVersionFileOnGit("versions.json")
+// GetLastVersion will get the latest version of all packages
+func (s *SemVer) GetLastVersion(pkgVersion string) (v string) {
+	versions := s.getVersionFileOnGit("versions.json")
+	switch pkgVersion {
+	case "codegen":
+		v = semver.Max(versions.Codegen.String(), CodegenVersion.String())
+	case "deployer":
+		v = semver.Max(versions.Deployer.String(), DeployerVersion.String())
+	default:
+		v = semver.Max(versions.Module.String(), ModuleVersion.String())
+	}
+	s.lastVersion = v
+	return v
 }
 
+// WeNeedToUpdate is a method to compare the current version with the latest version
+// if last version > current version
+// it will return true
+func (s SemVer) WeNeedToUpdate() bool {
+	return s.lastVersion != s.String()
+}
+
+// String will return current version
 func (s SemVer) String() string {
 	return fmt.Sprintf("v%d.%d.%d", s.Major, s.Minor, s.Patch)
 }
 
-func (s SemVer) getVersionFileOnGit(filename string) (v string) {
+// getVersionFileOnGit is a method to get versions.json file in Github
+// we can use it for validating versions later
+func (s SemVer) getVersionFileOnGit(filename string) (v Versions) {
 	var (
 		client   *http.Client
 		response *http.Response
@@ -112,5 +168,7 @@ func (s SemVer) getVersionFileOnGit(filename string) (v string) {
 	if err != nil {
 		return
 	}
-	return string(body)
+
+	_ = json.Unmarshal(body, &v)
+	return v
 }

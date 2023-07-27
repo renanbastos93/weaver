@@ -33,4 +33,4 @@ package codegen
 // (this is "..." above). Again note that we ignore the patch number.
 
 type Version[_ any] string
-type LatestVersion = Version[[1][1]struct{}]
+type LatestVersion = Version[[0][1]struct{}]

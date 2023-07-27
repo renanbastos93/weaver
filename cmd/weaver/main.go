@@ -56,6 +56,7 @@ DESCRIPTION
 `
 
 func main() {
+
 	// Parse flags.
 	flag.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 	flag.Parse()
